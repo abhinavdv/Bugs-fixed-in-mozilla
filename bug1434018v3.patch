@@ -1,0 +1,893 @@
+# HG changeset patch
+# User abhinav <dvabhinav31@gmail.com>
+# Date 1517238868 -19800
+#      Mon Jan 29 20:44:28 2018 +0530
+# Node ID 0a184e0264860d5cccd93eb8e1efece7e35100ad
+# Parent  449305a1d7e87199f77139cdc513caa08d8d7210
+bug-1082679 Renamed all the files mentioned
+
+diff --git a/js/src/jit/VMFunctions.cpp b/js/src/jit/VMFunctions.cpp
+--- a/js/src/jit/VMFunctions.cpp
++++ b/js/src/jit/VMFunctions.cpp
+@@ -1097,7 +1097,7 @@ HandleDebugTrap(JSContext* cx, BaselineF
+     MOZ_ASSERT(script->stepModeEnabled() || script->hasBreakpointsAt(pc));
+ 
+     RootedValue rval(cx);
+-    JSTrapStatus status = JSTRAP_CONTINUE;
++    TrapStatus status = JSTRAP_CONTINUE;
+ 
+     if (script->stepModeEnabled())
+         status = Debugger::onSingleStep(cx, &rval);
+diff --git a/js/src/vm/Debugger-inl.h b/js/src/vm/Debugger-inl.h
+--- a/js/src/vm/Debugger-inl.h
++++ b/js/src/vm/Debugger-inl.h
+@@ -41,7 +41,7 @@ js::Debugger::checkNoExecute(JSContext* 
+     return slowPathCheckNoExecute(cx, script);
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ js::Debugger::onEnterFrame(JSContext* cx, AbstractFramePtr frame)
+ {
+     MOZ_ASSERT_IF(frame.hasScript() && frame.script()->isDebuggee(), frame.isDebuggee());
+@@ -50,7 +50,7 @@ js::Debugger::onEnterFrame(JSContext* cx
+     return slowPathOnEnterFrame(cx, frame);
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ js::Debugger::onDebuggerStatement(JSContext* cx, AbstractFramePtr frame)
+ {
+     if (!cx->compartment()->isDebuggee())
+@@ -58,7 +58,7 @@ js::Debugger::onDebuggerStatement(JSCont
+     return slowPathOnDebuggerStatement(cx, frame);
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ js::Debugger::onExceptionUnwind(JSContext* cx, AbstractFramePtr frame)
+ {
+     if (!cx->compartment()->isDebuggee())
+diff --git a/js/src/vm/Debugger.cpp b/js/src/vm/Debugger.cpp
+--- a/js/src/vm/Debugger.cpp
++++ b/js/src/vm/Debugger.cpp
+@@ -881,16 +881,16 @@ Debugger::hasAnyLiveHooks(JSRuntime* rt)
+     return false;
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ Debugger::slowPathOnEnterFrame(JSContext* cx, AbstractFramePtr frame)
+ {
+     RootedValue rval(cx);
+-    JSTrapStatus status = dispatchHook(
++    TrapStatus status = dispatchHook(
+         cx,
+         [frame](Debugger* dbg) -> bool {
+             return dbg->observesFrame(frame) && dbg->observesEnterFrame();
+         },
+-        [&](Debugger* dbg) -> JSTrapStatus {
++        [&](Debugger* dbg) -> TrapStatus {
+             return dbg->fireEnterFrame(cx, &rval);
+         });
+ 
+@@ -911,7 +911,7 @@ Debugger::slowPathOnEnterFrame(JSContext
+         break;
+ 
+       default:
+-        MOZ_CRASH("bad Debugger::onEnterFrame JSTrapStatus value");
++        MOZ_CRASH("bad Debugger::onEnterFrame TrapStatus value");
+     }
+ 
+     return status;
+@@ -949,7 +949,7 @@ Debugger::slowPathOnLeaveFrame(JSContext
+         return frameOk;
+ 
+     /* Save the frame's completion value. */
+-    JSTrapStatus status;
++    TrapStatus status;
+     RootedValue value(cx);
+     Debugger::resultToCompletion(cx, frameOk, frame.returnValue(), &status, &value);
+ 
+@@ -980,7 +980,7 @@ Debugger::slowPathOnLeaveFrame(JSContext
+                 }
+ 
+                 /* Call the onPop handler. */
+-                JSTrapStatus nextStatus = status;
++                TrapStatus nextStatus = status;
+                 RootedValue nextValue(cx, wrappedValue);
+                 bool success = handler->onPop(cx, frameobj, nextStatus, &nextValue);
+                 nextStatus = dbg->processParsedHandlerResult(ac, frame, pc, success, nextStatus,
+@@ -1021,14 +1021,14 @@ Debugger::slowPathOnLeaveFrame(JSContext
+     }
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ Debugger::slowPathOnDebuggerStatement(JSContext* cx, AbstractFramePtr frame)
+ {
+     RootedValue rval(cx);
+-    JSTrapStatus status = dispatchHook(
++    TrapStatus status = dispatchHook(
+         cx,
+         [](Debugger* dbg) -> bool { return dbg->getHook(OnDebuggerStatement); },
+-        [&](Debugger* dbg) -> JSTrapStatus {
++        [&](Debugger* dbg) -> TrapStatus {
+             return dbg->fireDebuggerStatement(cx, &rval);
+         });
+ 
+@@ -1052,7 +1052,7 @@ Debugger::slowPathOnDebuggerStatement(JS
+     return status;
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ Debugger::slowPathOnExceptionUnwind(JSContext* cx, AbstractFramePtr frame)
+ {
+     // Invoking more JS on an over-recursed stack or after OOM is only going
+@@ -1065,10 +1065,10 @@ Debugger::slowPathOnExceptionUnwind(JSCo
+         return JSTRAP_CONTINUE;
+ 
+     RootedValue rval(cx);
+-    JSTrapStatus status = dispatchHook(
++    TrapStatus status = dispatchHook(
+         cx,
+         [](Debugger* dbg) -> bool { return dbg->getHook(OnExceptionUnwind); },
+-        [&](Debugger* dbg) -> JSTrapStatus {
++        [&](Debugger* dbg) -> TrapStatus {
+             return dbg->fireExceptionUnwind(cx, &rval);
+         });
+ 
+@@ -1359,7 +1359,7 @@ Debugger::unwrapPropertyDescriptor(JSCon
+     return true;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::reportUncaughtException(Maybe<AutoCompartment>& ac)
+ {
+     JSContext* cx = ac->context();
+@@ -1399,7 +1399,7 @@ Debugger::reportUncaughtException(Maybe<
+     return JSTRAP_ERROR;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::handleUncaughtExceptionHelper(Maybe<AutoCompartment>& ac, MutableHandleValue* vp,
+                                         const Maybe<HandleValue>& thisVForCheck,
+                                         AbstractFramePtr frame)
+@@ -1421,7 +1421,7 @@ Debugger::handleUncaughtExceptionHelper(
+             RootedValue rv(cx);
+             if (js::Call(cx, fval, object, exc, &rv)) {
+                 if (vp) {
+-                    JSTrapStatus status = JSTRAP_CONTINUE;
++                    TrapStatus status = JSTRAP_CONTINUE;
+                     if (processResumptionValue(ac, frame, thisVForCheck, rv, status, *vp))
+                         return status;
+                 } else {
+@@ -1437,14 +1437,14 @@ Debugger::handleUncaughtExceptionHelper(
+     return JSTRAP_ERROR;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::handleUncaughtException(Maybe<AutoCompartment>& ac, MutableHandleValue vp,
+                                   const Maybe<HandleValue>& thisVForCheck, AbstractFramePtr frame)
+ {
+     return handleUncaughtExceptionHelper(ac, &vp, thisVForCheck, frame);
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::handleUncaughtException(Maybe<AutoCompartment>& ac)
+ {
+     return handleUncaughtExceptionHelper(ac, nullptr, mozilla::Nothing(), NullFramePtr());
+@@ -1452,7 +1452,7 @@ Debugger::handleUncaughtException(Maybe<
+ 
+ /* static */ void
+ Debugger::resultToCompletion(JSContext* cx, bool ok, const Value& rv,
+-                             JSTrapStatus* status, MutableHandleValue value)
++                             TrapStatus* status, MutableHandleValue value)
+ {
+     MOZ_ASSERT_IF(ok, !cx->isExceptionPending());
+ 
+@@ -1471,7 +1471,7 @@ Debugger::resultToCompletion(JSContext* 
+ }
+ 
+ bool
+-Debugger::newCompletionValue(JSContext* cx, JSTrapStatus status, const Value& value_,
++Debugger::newCompletionValue(JSContext* cx, TrapStatus status, const Value& value_,
+                              MutableHandleValue result)
+ {
+     /*
+@@ -1520,7 +1520,7 @@ Debugger::receiveCompletionValue(Maybe<A
+ {
+     JSContext* cx = ac->context();
+ 
+-    JSTrapStatus status;
++    TrapStatus status;
+     RootedValue value(cx);
+     resultToCompletion(cx, ok, val, &status, &value);
+     ac.reset();
+@@ -1529,8 +1529,8 @@ Debugger::receiveCompletionValue(Maybe<A
+ }
+ 
+ static bool
+-GetStatusProperty(JSContext* cx, HandleObject obj, HandlePropertyName name, JSTrapStatus status,
+-                  JSTrapStatus& statusp, MutableHandleValue vp, int* hits)
++GetStatusProperty(JSContext* cx, HandleObject obj, HandlePropertyName name, TrapStatus status,
++                  TrapStatus& statusp, MutableHandleValue vp, int* hits)
+ {
+     bool found;
+     if (!HasProperty(cx, obj, name, &found))
+@@ -1545,7 +1545,7 @@ GetStatusProperty(JSContext* cx, HandleO
+ }
+ 
+ static bool
+-ParseResumptionValueAsObject(JSContext* cx, HandleValue rv, JSTrapStatus& statusp,
++ParseResumptionValueAsObject(JSContext* cx, HandleValue rv, TrapStatus& statusp,
+                              MutableHandleValue vp)
+ {
+     int hits = 0;
+@@ -1565,7 +1565,7 @@ ParseResumptionValueAsObject(JSContext* 
+ }
+ 
+ static bool
+-ParseResumptionValue(JSContext* cx, HandleValue rval, JSTrapStatus& statusp, MutableHandleValue vp)
++ParseResumptionValue(JSContext* cx, HandleValue rval, TrapStatus& statusp, MutableHandleValue vp)
+ {
+     if (rval.isUndefined()) {
+         statusp = JSTRAP_CONTINUE;
+@@ -1582,7 +1582,7 @@ ParseResumptionValue(JSContext* cx, Hand
+ 
+ static bool
+ CheckResumptionValue(JSContext* cx, AbstractFramePtr frame, const Maybe<HandleValue>& maybeThisv,
+-                     JSTrapStatus status, MutableHandleValue vp)
++                     TrapStatus status, MutableHandleValue vp)
+ {
+     if (status == JSTRAP_RETURN && frame && frame.isFunctionFrame()) {
+         // Don't let a { return: ... } resumption value make a generator
+@@ -1638,7 +1638,7 @@ GetThisValueForCheck(JSContext* cx, Abst
+ bool
+ Debugger::processResumptionValue(Maybe<AutoCompartment>& ac, AbstractFramePtr frame,
+                                  const Maybe<HandleValue>& maybeThisv, HandleValue rval,
+-                                 JSTrapStatus& statusp, MutableHandleValue vp)
++                                 TrapStatus& statusp, MutableHandleValue vp)
+ {
+     JSContext* cx = ac->context();
+ 
+@@ -1658,10 +1658,10 @@ Debugger::processResumptionValue(Maybe<A
+     return true;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::processParsedHandlerResultHelper(Maybe<AutoCompartment>& ac, AbstractFramePtr frame,
+                                            const Maybe<HandleValue>& maybeThisv, bool success,
+-                                           JSTrapStatus status, MutableHandleValue vp)
++                                           TrapStatus status, MutableHandleValue vp)
+ {
+     if (!success)
+         return handleUncaughtException(ac, vp, maybeThisv, frame);
+@@ -1683,9 +1683,9 @@ Debugger::processParsedHandlerResultHelp
+     return status;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::processParsedHandlerResult(Maybe<AutoCompartment>& ac, AbstractFramePtr frame,
+-                                     jsbytecode* pc, bool success, JSTrapStatus status,
++                                     jsbytecode* pc, bool success, TrapStatus status,
+                                      MutableHandleValue vp)
+ {
+     JSContext* cx = ac->context();
+@@ -1700,7 +1700,7 @@ Debugger::processParsedHandlerResult(May
+     return processParsedHandlerResultHelper(ac, frame, maybeThisv, success, status, vp);
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::processHandlerResult(Maybe<AutoCompartment>& ac, bool success, const Value& rv,
+                                AbstractFramePtr frame, jsbytecode* pc, MutableHandleValue vp)
+ {
+@@ -1717,7 +1717,7 @@ Debugger::processHandlerResult(Maybe<Aut
+         return handleUncaughtException(ac, vp, maybeThisv, frame);
+ 
+     RootedValue rootRv(cx, rv);
+-    JSTrapStatus status = JSTRAP_CONTINUE;
++    TrapStatus status = JSTRAP_CONTINUE;
+     success = ParseResumptionValue(cx, rootRv, status, vp);
+ 
+     return processParsedHandlerResultHelper(ac, frame, maybeThisv, success, status, vp);
+@@ -1751,7 +1751,7 @@ CallMethodIfPresent(JSContext* cx, Handl
+     return js::Call(cx, fval, rval, args, rval);
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::fireDebuggerStatement(JSContext* cx, MutableHandleValue vp)
+ {
+     RootedObject hook(cx, getHook(OnDebuggerStatement));
+@@ -1772,7 +1772,7 @@ Debugger::fireDebuggerStatement(JSContex
+     return processHandlerResult(ac, ok, rv, iter.abstractFramePtr(), iter.pc(), vp);
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::fireExceptionUnwind(JSContext* cx, MutableHandleValue vp)
+ {
+     RootedObject hook(cx, getHook(OnExceptionUnwind));
+@@ -1797,13 +1797,13 @@ Debugger::fireExceptionUnwind(JSContext*
+     RootedValue fval(cx, ObjectValue(*hook));
+     RootedValue rv(cx);
+     bool ok = js::Call(cx, fval, object, scriptFrame, wrappedExc, &rv);
+-    JSTrapStatus st = processHandlerResult(ac, ok, rv, iter.abstractFramePtr(), iter.pc(), vp);
++    TrapStatus st = processHandlerResult(ac, ok, rv, iter.abstractFramePtr(), iter.pc(), vp);
+     if (st == JSTRAP_CONTINUE)
+         cx->setPendingException(exc);
+     return st;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::fireEnterFrame(JSContext* cx, MutableHandleValue vp)
+ {
+     RootedObject hook(cx, getHook(OnEnterFrame));
+@@ -1877,8 +1877,8 @@ Debugger::fireOnGarbageCollectionHook(JS
+ }
+ 
+ template <typename HookIsEnabledFun /* bool (Debugger*) */,
+-          typename FireHookFun /* JSTrapStatus (Debugger*) */>
+-/* static */ JSTrapStatus
++          typename FireHookFun /* TrapStatus (Debugger*) */>
++/* static */ TrapStatus
+ Debugger::dispatchHook(JSContext* cx, HookIsEnabledFun hookIsEnabled, FireHookFun fireHook)
+ {
+     /*
+@@ -1909,7 +1909,7 @@ Debugger::dispatchHook(JSContext* cx, Ho
+         Debugger* dbg = Debugger::fromJSObject(&p->toObject());
+         EnterDebuggeeNoExecute nx(cx, *dbg);
+         if (dbg->debuggees.has(global) && dbg->enabled && hookIsEnabled(dbg)) {
+-            JSTrapStatus st = fireHook(dbg);
++            TrapStatus st = fireHook(dbg);
+             if (st != JSTRAP_CONTINUE)
+                 return st;
+         }
+@@ -1920,12 +1920,12 @@ Debugger::dispatchHook(JSContext* cx, Ho
+ void
+ Debugger::slowPathOnNewScript(JSContext* cx, HandleScript script)
+ {
+-    JSTrapStatus status = dispatchHook(
++    TrapStatus status = dispatchHook(
+         cx,
+         [script](Debugger* dbg) -> bool {
+             return dbg->observesNewScript() && dbg->observesScript(script);
+         },
+-        [&](Debugger* dbg) -> JSTrapStatus {
++        [&](Debugger* dbg) -> TrapStatus {
+             Rooted<DebuggerScriptReferent> scriptReferent(cx, script.get());
+             dbg->fireNewScript(cx, scriptReferent);
+             return JSTRAP_CONTINUE;
+@@ -1944,12 +1944,12 @@ Debugger::slowPathOnNewScript(JSContext*
+ void
+ Debugger::slowPathOnNewWasmInstance(JSContext* cx, Handle<WasmInstanceObject*> wasmInstance)
+ {
+-    JSTrapStatus status = dispatchHook(
++    TrapStatus status = dispatchHook(
+         cx,
+         [wasmInstance](Debugger* dbg) -> bool {
+             return dbg->observesNewScript() && dbg->observesGlobal(&wasmInstance->global());
+         },
+-        [&](Debugger* dbg) -> JSTrapStatus {
++        [&](Debugger* dbg) -> TrapStatus {
+             Rooted<DebuggerScriptReferent> scriptReferent(cx, wasmInstance.get());
+             dbg->fireNewScript(cx, scriptReferent);
+             return JSTRAP_CONTINUE;
+@@ -1965,7 +1965,7 @@ Debugger::slowPathOnNewWasmInstance(JSCo
+     MOZ_ASSERT(status == JSTRAP_CONTINUE);
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ Debugger::onTrap(JSContext* cx, MutableHandleValue vp)
+ {
+     FrameIter iter(cx);
+@@ -2034,7 +2034,7 @@ Debugger::onTrap(JSContext* cx, MutableH
+             RootedValue rv(cx);
+             Rooted<JSObject*> handler(cx, bp->handler);
+             bool ok = CallMethodIfPresent(cx, handler, "hit", 1, scriptFrame.address(), &rv);
+-            JSTrapStatus st = dbg->processHandlerResult(ac, ok, rv,  iter.abstractFramePtr(),
++            TrapStatus st = dbg->processHandlerResult(ac, ok, rv,  iter.abstractFramePtr(),
+                                                         iter.pc(), vp);
+             if (st != JSTRAP_CONTINUE)
+                 return st;
+@@ -2056,7 +2056,7 @@ Debugger::onTrap(JSContext* cx, MutableH
+     return JSTRAP_CONTINUE;
+ }
+ 
+-/* static */ JSTrapStatus
++/* static */ TrapStatus
+ Debugger::onSingleStep(JSContext* cx, MutableHandleValue vp)
+ {
+     FrameIter iter(cx);
+@@ -2124,7 +2124,7 @@ Debugger::onSingleStep(JSContext* cx, Mu
+         Maybe<AutoCompartment> ac;
+         ac.emplace(cx, dbg->object);
+ 
+-        JSTrapStatus status = JSTRAP_CONTINUE;
++        TrapStatus status = JSTRAP_CONTINUE;
+         bool success = handler->onStep(cx, frame, status, vp);
+         status = dbg->processParsedHandlerResult(ac, iter.abstractFramePtr(), iter.pc(), success,
+                                                  status, vp);
+@@ -2136,7 +2136,7 @@ Debugger::onSingleStep(JSContext* cx, Mu
+     return JSTRAP_CONTINUE;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::fireNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global, MutableHandleValue vp)
+ {
+     RootedObject hook(cx, getHook(OnNewGlobalObject));
+@@ -2168,7 +2168,7 @@ Debugger::fireNewGlobalObject(JSContext*
+     // to handleUncaughtException so that it parses resumption values from the
+     // uncaughtExceptionHook and tells the caller whether we should execute the
+     // rest of the onNewGlobalObject hooks or not.
+-    JSTrapStatus status = ok ? JSTRAP_CONTINUE
++    TrapStatus status = ok ? JSTRAP_CONTINUE
+                              : handleUncaughtException(ac, vp);
+     MOZ_ASSERT(!cx->isExceptionPending());
+     return status;
+@@ -2198,7 +2198,7 @@ Debugger::slowPathOnNewGlobalObject(JSCo
+         }
+     }
+ 
+-    JSTrapStatus status = JSTRAP_CONTINUE;
++    TrapStatus status = JSTRAP_CONTINUE;
+     RootedValue value(cx);
+ 
+     for (size_t i = 0; i < watchers.length(); i++) {
+@@ -2303,7 +2303,7 @@ Debugger::appendAllocationSite(JSContext
+     return true;
+ }
+ 
+-JSTrapStatus
++TrapStatus
+ Debugger::firePromiseHook(JSContext* cx, Hook hook, HandleObject promise, MutableHandleValue vp)
+ {
+     MOZ_ASSERT(hook == OnNewPromise || hook == OnPromiseSettled);
+@@ -2330,7 +2330,7 @@ Debugger::firePromiseHook(JSContext* cx,
+         ok = false;
+     }
+ 
+-    JSTrapStatus status = ok ? JSTRAP_CONTINUE
++    TrapStatus status = ok ? JSTRAP_CONTINUE
+                              : handleUncaughtException(ac, vp);
+     MOZ_ASSERT(!cx->isExceptionPending());
+     return status;
+@@ -2348,10 +2348,10 @@ Debugger::slowPathPromiseHook(JSContext*
+     assertSameCompartment(cx, promise);
+ 
+     RootedValue rval(cx);
+-    JSTrapStatus status = dispatchHook(
++    TrapStatus status = dispatchHook(
+         cx,
+         [hook](Debugger* dbg) -> bool { return dbg->getHook(hook); },
+-        [&](Debugger* dbg) -> JSTrapStatus {
++        [&](Debugger* dbg) -> TrapStatus {
+             (void) dbg->firePromiseHook(cx, hook, promise, &rval);
+             return JSTRAP_CONTINUE;
+         });
+@@ -7456,7 +7456,7 @@ ScriptedOnStepHandler::trace(JSTracer* t
+ }
+ 
+ bool
+-ScriptedOnStepHandler::onStep(JSContext* cx, HandleDebuggerFrame frame, JSTrapStatus& statusp,
++ScriptedOnStepHandler::onStep(JSContext* cx, HandleDebuggerFrame frame, TrapStatus& statusp,
+                               MutableHandleValue vp)
+ {
+     RootedValue fval(cx, ObjectValue(*object_));
+@@ -7493,7 +7493,7 @@ ScriptedOnPopHandler::trace(JSTracer* tr
+ }
+ 
+ bool
+-ScriptedOnPopHandler::onPop(JSContext* cx, HandleDebuggerFrame frame, JSTrapStatus& statusp,
++ScriptedOnPopHandler::onPop(JSContext* cx, HandleDebuggerFrame frame, TrapStatus& statusp,
+                             MutableHandleValue vp)
+ {
+     Debugger *dbg = frame->owner();
+@@ -7911,7 +7911,7 @@ EvaluateInEnv(JSContext* cx, Handle<Env*
+ static bool
+ DebuggerGenericEval(JSContext* cx, const mozilla::Range<const char16_t> chars,
+                     HandleObject bindings, const EvalOptions& options,
+-                    JSTrapStatus& status, MutableHandleValue value,
++                    TrapStatus& status, MutableHandleValue value,
+                     Debugger* dbg, HandleObject envArg, FrameIter* iter)
+ {
+     /* Either we're specifying the frame, or a global. */
+@@ -7999,7 +7999,7 @@ DebuggerGenericEval(JSContext* cx, const
+ 
+ /* static */ bool
+ DebuggerFrame::eval(JSContext* cx, HandleDebuggerFrame frame, mozilla::Range<const char16_t> chars,
+-                    HandleObject bindings, const EvalOptions& options, JSTrapStatus& status,
++                    HandleObject bindings, const EvalOptions& options, TrapStatus& status,
+                     MutableHandleValue value)
+ {
+     MOZ_ASSERT(frame->isLive());
+@@ -8668,7 +8668,7 @@ DebuggerFrame::evalMethod(JSContext* cx,
+    if (!ParseEvalOptions(cx, args.get(1), options))
+         return false;
+ 
+-    JSTrapStatus status;
++    TrapStatus status;
+     RootedValue value(cx);
+     if (!DebuggerFrame::eval(cx, frame, chars, nullptr, options, status, &value))
+         return false;
+@@ -8699,7 +8699,7 @@ DebuggerFrame::evalWithBindingsMethod(JS
+     if (!ParseEvalOptions(cx, args.get(2), options))
+         return false;
+ 
+-    JSTrapStatus status;
++    TrapStatus status;
+     RootedValue value(cx);
+     if (!DebuggerFrame::eval(cx, frame, chars, bindings, options, status, &value))
+         return false;
+@@ -9736,7 +9736,7 @@ DebuggerObject::executeInGlobalMethod(JS
+     if (!ParseEvalOptions(cx, args.get(1), options))
+         return false;
+ 
+-    JSTrapStatus status;
++    TrapStatus status;
+     RootedValue value(cx);
+     if (!DebuggerObject::executeInGlobal(cx, object, chars, nullptr, options, status, &value))
+         return false;
+@@ -9770,7 +9770,7 @@ DebuggerObject::executeInGlobalWithBindi
+     if (!ParseEvalOptions(cx, args.get(2), options))
+         return false;
+ 
+-    JSTrapStatus status;
++    TrapStatus status;
+     RootedValue value(cx);
+     if (!DebuggerObject::executeInGlobal(cx, object, chars, bindings, options, status, &value))
+         return false;
+@@ -10663,7 +10663,7 @@ DebuggerObject::forceLexicalInitializati
+ /* static */ bool
+ DebuggerObject::executeInGlobal(JSContext* cx, HandleDebuggerObject object,
+                                 mozilla::Range<const char16_t> chars, HandleObject bindings,
+-                                const EvalOptions& options, JSTrapStatus& status,
++                                const EvalOptions& options, TrapStatus& status,
+                                 MutableHandleValue value)
+ {
+     MOZ_ASSERT(object->isGlobal());
+diff --git a/js/src/vm/Debugger.h b/js/src/vm/Debugger.h
+--- a/js/src/vm/Debugger.h
++++ b/js/src/vm/Debugger.h
+@@ -28,13 +28,7 @@
+ #include "vm/SavedStacks.h"
+ #include "wasm/WasmJS.h"
+ 
+-enum JSTrapStatus {
+-    JSTRAP_ERROR,
+-    JSTRAP_CONTINUE,
+-    JSTRAP_RETURN,
+-    JSTRAP_THROW,
+-    JSTRAP_LIMIT
+-};
++
+ 
+ 
+ namespace js {
+@@ -44,6 +38,13 @@ class DebuggerMemory;
+ class ScriptedOnStepHandler;
+ class ScriptedOnPopHandler;
+ class WasmInstanceObject;
++enum class TrapStatus {
++    Error,
++    Continue,
++    Return,
++    Throw,
++    Limit
++};
+ 
+ typedef HashSet<ReadBarrieredGlobalObject,
+                 MovableCellHasher<ReadBarrieredGlobalObject>,
+@@ -528,7 +529,7 @@ class Debugger : private mozilla::Linked
+      * Report and clear the pending exception on ac.context, if any, and return
+      * JSTRAP_ERROR.
+      */
+-    JSTrapStatus reportUncaughtException(mozilla::Maybe<AutoCompartment>& ac);
++    TrapStatus reportUncaughtException(mozilla::Maybe<AutoCompartment>& ac);
+ 
+     /*
+      * Cope with an error or exception in a debugger hook.
+@@ -544,13 +545,13 @@ class Debugger : private mozilla::Linked
+      * do some things in the debugger compartment and some things in the
+      * debuggee compartment.
+      */
+-    JSTrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment>& ac);
+-    JSTrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment>& ac,
++    TrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment>& ac);
++    TrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment>& ac,
+                                          MutableHandleValue vp,
+                                          const mozilla::Maybe<HandleValue>& thisVForCheck = mozilla::Nothing(),
+                                          AbstractFramePtr frame = NullFramePtr());
+ 
+-    JSTrapStatus handleUncaughtExceptionHelper(mozilla::Maybe<AutoCompartment>& ac,
++    TrapStatus handleUncaughtExceptionHelper(mozilla::Maybe<AutoCompartment>& ac,
+                                                MutableHandleValue* vp,
+                                                const mozilla::Maybe<HandleValue>& thisVForCheck,
+                                                AbstractFramePtr frame);
+@@ -559,7 +560,7 @@ class Debugger : private mozilla::Linked
+      * Handle the result of a hook that is expected to return a resumption
+      * value <https://wiki.mozilla.org/Debugger#Resumption_Values>. This is called
+      * when we return from a debugging hook to debuggee code. The interpreter wants
+-     * a (JSTrapStatus, Value) pair telling it how to proceed.
++     * a (TrapStatus, Value) pair telling it how to proceed.
+      *
+      * Precondition: ac is entered. We are in the debugger compartment.
+      *
+@@ -580,23 +581,23 @@ class Debugger : private mozilla::Linked
+      *     anything else - Make a new TypeError the pending exception and
+      *         return handleUncaughtException(ac, vp, callHook).
+      */
+-    JSTrapStatus processHandlerResult(mozilla::Maybe<AutoCompartment>& ac, bool OK, const Value& rv,
++    TrapStatus processHandlerResult(mozilla::Maybe<AutoCompartment>& ac, bool OK, const Value& rv,
+                                       AbstractFramePtr frame, jsbytecode* pc, MutableHandleValue vp);
+ 
+-    JSTrapStatus processParsedHandlerResult(mozilla::Maybe<AutoCompartment>& ac,
++    TrapStatus processParsedHandlerResult(mozilla::Maybe<AutoCompartment>& ac,
+                                             AbstractFramePtr frame, jsbytecode* pc,
+-                                            bool success, JSTrapStatus status,
++                                            bool success, TrapStatus status,
+                                             MutableHandleValue vp);
+ 
+-    JSTrapStatus processParsedHandlerResultHelper(mozilla::Maybe<AutoCompartment>& ac,
++    TrapStatus processParsedHandlerResultHelper(mozilla::Maybe<AutoCompartment>& ac,
+                                                   AbstractFramePtr frame,
+                                                   const mozilla::Maybe<HandleValue>& maybeThisv,
+-                                                  bool success, JSTrapStatus status,
++                                                  bool success, TrapStatus status,
+                                                   MutableHandleValue vp);
+ 
+     bool processResumptionValue(mozilla::Maybe<AutoCompartment>& ac, AbstractFramePtr frame,
+                                 const mozilla::Maybe<HandleValue>& maybeThis, HandleValue rval,
+-                                JSTrapStatus& statusp, MutableHandleValue vp);
++                                TrapStatus& statusp, MutableHandleValue vp);
+ 
+     GlobalObject* unwrapDebuggeeArgument(JSContext* cx, const Value& v);
+ 
+@@ -727,11 +728,11 @@ class Debugger : private mozilla::Linked
+     bool hasAnyLiveHooks(JSRuntime* rt) const;
+ 
+     static MOZ_MUST_USE bool slowPathCheckNoExecute(JSContext* cx, HandleScript script);
+-    static JSTrapStatus slowPathOnEnterFrame(JSContext* cx, AbstractFramePtr frame);
++    static TrapStatus slowPathOnEnterFrame(JSContext* cx, AbstractFramePtr frame);
+     static MOZ_MUST_USE bool slowPathOnLeaveFrame(JSContext* cx, AbstractFramePtr frame,
+                                                   jsbytecode* pc, bool ok);
+-    static JSTrapStatus slowPathOnDebuggerStatement(JSContext* cx, AbstractFramePtr frame);
+-    static JSTrapStatus slowPathOnExceptionUnwind(JSContext* cx, AbstractFramePtr frame);
++    static TrapStatus slowPathOnDebuggerStatement(JSContext* cx, AbstractFramePtr frame);
++    static TrapStatus slowPathOnExceptionUnwind(JSContext* cx, AbstractFramePtr frame);
+     static void slowPathOnNewScript(JSContext* cx, HandleScript script);
+     static void slowPathOnNewWasmInstance(JSContext* cx, Handle<WasmInstanceObject*> wasmInstance);
+     static void slowPathOnNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global);
+@@ -742,15 +743,15 @@ class Debugger : private mozilla::Linked
+     static void slowPathPromiseHook(JSContext* cx, Hook hook, Handle<PromiseObject*> promise);
+ 
+     template <typename HookIsEnabledFun /* bool (Debugger*) */,
+-              typename FireHookFun /* JSTrapStatus (Debugger*) */>
+-    static JSTrapStatus dispatchHook(JSContext* cx, HookIsEnabledFun hookIsEnabled,
++              typename FireHookFun /* TrapStatus (Debugger*) */>
++    static TrapStatus dispatchHook(JSContext* cx, HookIsEnabledFun hookIsEnabled,
+                                      FireHookFun fireHook);
+ 
+-    JSTrapStatus fireDebuggerStatement(JSContext* cx, MutableHandleValue vp);
+-    JSTrapStatus fireExceptionUnwind(JSContext* cx, MutableHandleValue vp);
+-    JSTrapStatus fireEnterFrame(JSContext* cx, MutableHandleValue vp);
+-    JSTrapStatus fireNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global, MutableHandleValue vp);
+-    JSTrapStatus firePromiseHook(JSContext* cx, Hook hook, HandleObject promise, MutableHandleValue vp);
++    TrapStatus fireDebuggerStatement(JSContext* cx, MutableHandleValue vp);
++    TrapStatus fireExceptionUnwind(JSContext* cx, MutableHandleValue vp);
++    TrapStatus fireEnterFrame(JSContext* cx, MutableHandleValue vp);
++    TrapStatus fireNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global, MutableHandleValue vp);
++    TrapStatus firePromiseHook(JSContext* cx, Hook hook, HandleObject promise, MutableHandleValue vp);
+ 
+     NativeObject* newVariantWrapper(JSContext* cx, Handle<DebuggerScriptReferent> referent) {
+         return newDebuggerScript(cx, referent);
+@@ -863,11 +864,11 @@ class Debugger : private mozilla::Linked
+     static inline MOZ_MUST_USE bool checkNoExecute(JSContext* cx, HandleScript script);
+ 
+     /*
+-     * JSTrapStatus Overview
++     * TrapStatus Overview
+      * ---------------------
+      *
+      * The |onEnterFrame|, |onDebuggerStatement|, and |onExceptionUnwind|
+-     * methods below return a JSTrapStatus code that indicates how execution
++     * methods below return a TrapStatus code that indicates how execution
+      * should proceed:
+      *
+      * - JSTRAP_CONTINUE: Continue execution normally.
+@@ -888,7 +889,7 @@ class Debugger : private mozilla::Linked
+      * frame, |frame|. Call whatever hooks have been registered to observe new
+      * frames.
+      */
+-    static inline JSTrapStatus onEnterFrame(JSContext* cx, AbstractFramePtr frame);
++    static inline TrapStatus onEnterFrame(JSContext* cx, AbstractFramePtr frame);
+ 
+     /*
+      * Announce to the debugger a |debugger;| statement on has been
+@@ -898,13 +899,13 @@ class Debugger : private mozilla::Linked
+      * Note that this method is called for all |debugger;| statements,
+      * regardless of the frame's debuggee-ness.
+      */
+-    static inline JSTrapStatus onDebuggerStatement(JSContext* cx, AbstractFramePtr frame);
++    static inline TrapStatus onDebuggerStatement(JSContext* cx, AbstractFramePtr frame);
+ 
+     /*
+      * Announce to the debugger that an exception has been thrown and propagated
+      * to |frame|. Call whatever hooks have been registered to observe this.
+      */
+-    static inline JSTrapStatus onExceptionUnwind(JSContext* cx, AbstractFramePtr frame);
++    static inline TrapStatus onExceptionUnwind(JSContext* cx, AbstractFramePtr frame);
+ 
+     /*
+      * Announce to the debugger that the thread has exited a JavaScript frame, |frame|.
+@@ -928,8 +929,8 @@ class Debugger : private mozilla::Linked
+     static inline void onNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global);
+     static inline MOZ_MUST_USE bool onLogAllocationSite(JSContext* cx, JSObject* obj,
+                                                         HandleSavedFrame frame, mozilla::TimeStamp when);
+-    static JSTrapStatus onTrap(JSContext* cx, MutableHandleValue vp);
+-    static JSTrapStatus onSingleStep(JSContext* cx, MutableHandleValue vp);
++    static TrapStatus onTrap(JSContext* cx, MutableHandleValue vp);
++    static TrapStatus onSingleStep(JSContext* cx, MutableHandleValue vp);
+     static MOZ_MUST_USE bool handleBaselineOsr(JSContext* cx, InterpreterFrame* from,
+                                                jit::BaselineFrame* to);
+     static MOZ_MUST_USE bool handleIonBailout(JSContext* cx, jit::RematerializedFrame* from,
+@@ -1056,21 +1057,21 @@ class Debugger : private mozilla::Linked
+ 
+ 
+     /*
+-     * Set |*status| and |*value| to a (JSTrapStatus, Value) pair reflecting a
++     * Set |*status| and |*value| to a (TrapStatus, Value) pair reflecting a
+      * standard SpiderMonkey call state: a boolean success value |ok|, a return
+      * value |rv|, and a context |cx| that may or may not have an exception set.
+      * If an exception was pending on |cx|, it is cleared (and |ok| is asserted
+      * to be false).
+      */
+     static void resultToCompletion(JSContext* cx, bool ok, const Value& rv,
+-                                   JSTrapStatus* status, MutableHandleValue value);
++                                   TrapStatus* status, MutableHandleValue value);
+ 
+     /*
+      * Set |*result| to a JavaScript completion value corresponding to |status|
+      * and |value|. |value| should be the return value or exception value, not
+      * wrapped as a debuggee value. |cx| must be in the debugger compartment.
+      */
+-    MOZ_MUST_USE bool newCompletionValue(JSContext* cx, JSTrapStatus status, const Value& value,
++    MOZ_MUST_USE bool newCompletionValue(JSContext* cx, TrapStatus status, const Value& value,
+                                          MutableHandleValue result);
+ 
+     /*
+@@ -1269,7 +1270,7 @@ struct OnStepHandler : Handler {
+      * return true, with `statusp` and `vp` set to a resumption value
+      * specifiying how execution should continue.
+      */
+-    virtual bool onStep(JSContext* cx, HandleDebuggerFrame frame, JSTrapStatus& statusp,
++    virtual bool onStep(JSContext* cx, HandleDebuggerFrame frame, TrapStatus& statusp,
+                         MutableHandleValue vp) = 0;
+ };
+ 
+@@ -1279,7 +1280,7 @@ class ScriptedOnStepHandler final : publ
+     virtual JSObject* object() const override;
+     virtual void drop() override;
+     virtual void trace(JSTracer* tracer) override;
+-    virtual bool onStep(JSContext* cx, HandleDebuggerFrame frame, JSTrapStatus& statusp,
++    virtual bool onStep(JSContext* cx, HandleDebuggerFrame frame, TrapStatus& statusp,
+                         MutableHandleValue vp) override;
+ 
+   private:
+@@ -1298,7 +1299,7 @@ struct OnPopHandler : Handler {
+      * return true, with `statusp` and `vp` set to a resumption value specifying
+      * how execution should continue.
+      */
+-    virtual bool onPop(JSContext* cx, HandleDebuggerFrame frame, JSTrapStatus& statusp,
++    virtual bool onPop(JSContext* cx, HandleDebuggerFrame frame, TrapStatus& statusp,
+                        MutableHandleValue vp) = 0;
+ };
+ 
+@@ -1308,7 +1309,7 @@ class ScriptedOnPopHandler final : publi
+     virtual JSObject* object() const override;
+     virtual void drop() override;
+     virtual void trace(JSTracer* tracer) override;
+-    virtual bool onPop(JSContext* cx, HandleDebuggerFrame frame, JSTrapStatus& statusp,
++    virtual bool onPop(JSContext* cx, HandleDebuggerFrame frame, TrapStatus& statusp,
+                        MutableHandleValue vp) override;
+ 
+   private:
+@@ -1355,7 +1356,7 @@ class DebuggerFrame : public NativeObjec
+ 
+     static MOZ_MUST_USE bool eval(JSContext* cx, HandleDebuggerFrame frame,
+                                   mozilla::Range<const char16_t> chars, HandleObject bindings,
+-                                  const EvalOptions& options, JSTrapStatus& status,
++                                  const EvalOptions& options, TrapStatus& status,
+                                   MutableHandleValue value);
+ 
+     bool isLive() const;
+@@ -1471,7 +1472,7 @@ class DebuggerObject : public NativeObje
+     static MOZ_MUST_USE bool executeInGlobal(JSContext* cx, HandleDebuggerObject object,
+                                              mozilla::Range<const char16_t> chars,
+                                              HandleObject bindings, const EvalOptions& options,
+-                                             JSTrapStatus& status, MutableHandleValue value);
++                                             TrapStatus& status, MutableHandleValue value);
+     static MOZ_MUST_USE bool makeDebuggeeValue(JSContext* cx, HandleDebuggerObject object,
+                                                HandleValue value, MutableHandleValue result);
+     static MOZ_MUST_USE bool unsafeDereference(JSContext* cx, HandleDebuggerObject object,
+diff --git a/js/src/vm/Interpreter.cpp b/js/src/vm/Interpreter.cpp
+--- a/js/src/vm/Interpreter.cpp
++++ b/js/src/vm/Interpreter.cpp
+@@ -1334,7 +1334,7 @@ HandleError(JSContext* cx, InterpreterRe
+     if (cx->isExceptionPending()) {
+         /* Call debugger throw hooks. */
+         if (!cx->isClosingGenerator()) {
+-            JSTrapStatus status = Debugger::onExceptionUnwind(cx, regs.fp());
++            TrapStatus status = Debugger::onExceptionUnwind(cx, regs.fp());
+             switch (status) {
+               case JSTRAP_ERROR:
+                 goto again;
+@@ -1943,7 +1943,7 @@ CASE(EnableInterruptsPseudoOpcode)
+     if (script->isDebuggee()) {
+         if (script->stepModeEnabled()) {
+             RootedValue rval(cx);
+-            JSTrapStatus status = JSTRAP_CONTINUE;
++            TrapStatus status = JSTRAP_CONTINUE;
+             status = Debugger::onSingleStep(cx, &rval);
+             switch (status) {
+               case JSTRAP_ERROR:
+@@ -1968,7 +1968,7 @@ CASE(EnableInterruptsPseudoOpcode)
+ 
+         if (script->hasBreakpointsAt(REGS.pc)) {
+             RootedValue rval(cx);
+-            JSTrapStatus status = Debugger::onTrap(cx, &rval);
++            TrapStatus status = Debugger::onTrap(cx, &rval);
+             switch (status) {
+               case JSTRAP_ERROR:
+                 goto error;
+diff --git a/js/src/wasm/WasmBuiltins.cpp b/js/src/wasm/WasmBuiltins.cpp
+--- a/js/src/wasm/WasmBuiltins.cpp
++++ b/js/src/wasm/WasmBuiltins.cpp
+@@ -116,7 +116,7 @@ WasmHandleDebugTrap()
+         debugFrame->setIsDebuggee();
+         debugFrame->observe(cx);
+         // TODO call onEnterFrame
+-        JSTrapStatus status = Debugger::onEnterFrame(cx, debugFrame);
++        TrapStatus status = Debugger::onEnterFrame(cx, debugFrame);
+         if (status == JSTRAP_RETURN) {
+             // Ignoring forced return (JSTRAP_RETURN) -- changing code execution
+             // order is not yet implemented in the wasm baseline.
+@@ -137,7 +137,7 @@ WasmHandleDebugTrap()
+     MOZ_ASSERT(debug.hasBreakpointTrapAtOffset(site->lineOrBytecode()));
+     if (debug.stepModeEnabled(debugFrame->funcIndex())) {
+         RootedValue result(cx, UndefinedValue());
+-        JSTrapStatus status = Debugger::onSingleStep(cx, &result);
++        TrapStatus status = Debugger::onSingleStep(cx, &result);
+         if (status == JSTRAP_RETURN) {
+             // TODO properly handle JSTRAP_RETURN.
+             JS_ReportErrorASCII(cx, "Unexpected resumption value from onSingleStep");
+@@ -148,7 +148,7 @@ WasmHandleDebugTrap()
+     }
+     if (debug.hasBreakpointSite(site->lineOrBytecode())) {
+         RootedValue result(cx, UndefinedValue());
+-        JSTrapStatus status = Debugger::onTrap(cx, &result);
++        TrapStatus status = Debugger::onTrap(cx, &result);
+         if (status == JSTRAP_RETURN) {
+             // TODO properly handle JSTRAP_RETURN.
+             JS_ReportErrorASCII(cx, "Unexpected resumption value from breakpoint handler");
+@@ -200,7 +200,7 @@ wasm::HandleThrow(JSContext* cx, WasmFra
+         // Assume JSTRAP_ERROR status if no exception is pending --
+         // no onExceptionUnwind handlers must be fired.
+         if (cx->isExceptionPending()) {
+-            JSTrapStatus status = Debugger::onExceptionUnwind(cx, frame);
++            TrapStatus status = Debugger::onExceptionUnwind(cx, frame);
+             if (status == JSTRAP_RETURN) {
+                 // Unexpected trap return -- raising error since throw recovery
+                 // is not yet implemented in the wasm baseline.

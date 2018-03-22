@@ -1,0 +1,76 @@
+# HG changeset patch
+# User abhinav <dvabhinav31@gmail.com>
+# Date 1517228644 -19800
+#      Mon Jan 29 17:54:04 2018 +0530
+# Node ID 12ccea14da775451d1de19beb95bf9bd0ae67724
+# Parent  474d58c9137360c0fa1c85cdd11e3313b33b7cad
+bug-1411129 I have changes all the necessary files
+
+diff --git a/layout/generic/nsGfxScrollFrame.h b/layout/generic/nsGfxScrollFrame.h
+--- a/layout/generic/nsGfxScrollFrame.h
++++ b/layout/generic/nsGfxScrollFrame.h
+@@ -367,7 +367,7 @@ private:
+ public:
+   bool IsScrollbarOnRight() const;
+   bool IsScrollingActive(nsDisplayListBuilder* aBuilder) const;
+-  bool MayBeAsynchronouslyScrolled() const {
++  bool IsMaybeAsynchronouslyScrolled() const {
+     // If this is true, then we'll build an ASR, and that's what we want
+     // to know I think.
+     return mWillBuildScrollableLayer;
+@@ -927,8 +927,8 @@ public:
+   virtual bool IsMaybeScrollingActive() const override {
+     return mHelper.IsMaybeScrollingActive();
+   }
+-  virtual bool MayBeAsynchronouslyScrolled() override {
+-    return mHelper.MayBeAsynchronouslyScrolled();
++  virtual bool IsMaybeAsynchronouslyScrolled() override {
++    return mHelper.IsMaybeAsynchronouslyScrolled();
+   }
+   virtual bool IsProcessingAsyncScroll() override {
+     return mHelper.IsProcessingAsyncScroll();
+@@ -1372,8 +1372,8 @@ public:
+   virtual bool IsMaybeScrollingActive() const override {
+     return mHelper.IsMaybeScrollingActive();
+   }
+-  virtual bool MayBeAsynchronouslyScrolled() override {
+-    return mHelper.MayBeAsynchronouslyScrolled();
++  virtual bool IsMaybeAsynchronouslyScrolled() override {
++    return mHelper.IsMaybeAsynchronouslyScrolled();
+   }
+   virtual bool IsProcessingAsyncScroll() override {
+     return mHelper.IsProcessingAsyncScroll();
+diff --git a/layout/generic/nsIScrollableFrame.h b/layout/generic/nsIScrollableFrame.h
+--- a/layout/generic/nsIScrollableFrame.h
++++ b/layout/generic/nsIScrollableFrame.h
+@@ -322,7 +322,7 @@ public:
+    * Returns true if this scroll frame might be scrolled
+    * asynchronously by the compositor.
+    */
+-  virtual bool MayBeAsynchronouslyScrolled() = 0;
++  virtual bool IsMaybeAsynchronouslyScrolled() = 0;
+ 
+   /**
+    * Same as the above except doesn't take into account will-change budget,
+diff --git a/layout/painting/nsDisplayList.cpp b/layout/painting/nsDisplayList.cpp
+--- a/layout/painting/nsDisplayList.cpp
++++ b/layout/painting/nsDisplayList.cpp
+@@ -1742,7 +1742,7 @@ nsDisplayListBuilder::IsAnimatedGeometry
+     nsIScrollableFrame* sf = do_QueryFrame(parent);
+     if (sf->GetScrolledFrame() == aFrame) {
+       if (sf->IsScrollingActive(this)) {
+-        aIsAsync = aIsAsync || sf->MayBeAsynchronouslyScrolled();
++        aIsAsync = aIsAsync || sf->IsMaybeAsynchronouslyScrolled();
+         result = AGR_YES;
+       } else {
+         result = AGR_MAYBE;
+@@ -7514,7 +7514,7 @@ nsDisplayStickyPosition::CreateWebRender
+     // will never be asynchronously scrolled. Instead we will always position
+     // the sticky items correctly on the gecko side and WR will never need to
+     // adjust their position itself.
+-    if (!stickyScrollContainer->ScrollFrame()->MayBeAsynchronouslyScrolled()) {
++    if (!stickyScrollContainer->ScrollFrame()->IsMaybeAsynchronouslyScrolled()) {
+       stickyScrollContainer = nullptr;
+     }
+   }
+

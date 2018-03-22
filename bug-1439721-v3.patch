@@ -1,0 +1,61 @@
+# HG changeset patch
+# User abhinav <dvabhinav31@gmail.com>
+# Date 1520426736 -19800
+#      Wed Mar 07 18:15:36 2018 +0530
+# Node ID d9f8e83cdb389326590f73cf46e42d5ef5f75fc2
+# Parent  cb3b2b090314e6b1c4bc0bc7ebe7814ba474d974
+bug-1439721-p1 I have made all the three changes and made sure that there are no other files
+
+diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
+--- a/browser/base/content/browser.js
++++ b/browser/base/content/browser.js
+@@ -8219,29 +8219,6 @@ var gIdentityHandler = {
+       this._permissionReloadHint.removeAttribute("hidden");
+       PanelView.forNode(this._identityPopupMainView)
+                .descriptionHeightWorkaround();
+-
+-      // Set telemetry values for clearing a permission
+-      let histogram = Services.telemetry.getKeyedHistogramById("WEB_PERMISSION_CLEARED");
+-
+-      let permissionType = 0;
+-      if (aPermission.state == SitePermissions.ALLOW &&
+-          aPermission.scope == SitePermissions.SCOPE_PERSISTENT) {
+-        // 1 : clear permanently allowed permission
+-        permissionType = 1;
+-      } else if (aPermission.state == SitePermissions.BLOCK &&
+-                 aPermission.scope == SitePermissions.SCOPE_PERSISTENT) {
+-        // 2 : clear permanently blocked permission
+-        permissionType = 2;
+-      } else if (aPermission.state == SitePermissions.ALLOW) {
+-        // 3 : clear temporary allowed permission
+-        permissionType = 3;
+-      } else if (aPermission.state == SitePermissions.BLOCK) {
+-        // 4 : clear temporary blocked permission
+-        permissionType = 4;
+-      }
+-
+-      histogram.add("(all)", permissionType);
+-      histogram.add(aPermission.id, permissionType);
+     });
+ 
+     container.appendChild(button);
+diff --git a/toolkit/components/telemetry/Histograms.json b/toolkit/components/telemetry/Histograms.json
+--- a/toolkit/components/telemetry/Histograms.json
++++ b/toolkit/components/telemetry/Histograms.json
+@@ -12801,16 +12801,6 @@
+     "kind": "count",
+     "description": "Number of named browser profiles for the current user, as reported by the profile service at startup."
+   },
+-  "WEB_PERMISSION_CLEARED": {
+-    "record_in_processes": ["main", "content"],
+-    "alert_emails": ["firefox-dev@mozilla.org"],
+-    "bug_numbers": [1286118],
+-    "expires_in_version": "55",
+-    "kind": "enumerated",
+-    "keyed": true,
+-    "n_values": 6,
+-    "description": "Number of revoke actions on permissions in the control center, keyed by permission id. Values represent the permission type that was revoked. (0=unknown, 1=permanently allowed, 2=permanently blocked, 3=temporarily allowed, 4=temporarily blocked)"
+-  },
+   "TIME_TO_FIRST_CLICK_MS": {
+     "record_in_processes": ["main", "content"],
+     "alert_emails": ["hkirschner@mozilla.com"],
